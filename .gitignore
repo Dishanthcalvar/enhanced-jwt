@@ -1,0 +1,9 @@
+node_modules
+dist
+.turbo
+*.log
+.env
+.env.local
+apps/api/keys/*.pem
+coverage
+.DS_Store
