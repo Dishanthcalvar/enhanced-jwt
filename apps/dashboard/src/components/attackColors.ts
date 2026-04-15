@@ -1,14 +1,15 @@
 import type { AttackVector } from '../types';
 
+/* Neon-inspired palette for each attack vector */
 const map: Record<string, string> = {
-  none_exploit: '#ef4444',
-  algorithm_downgrade: '#f97316',
-  kid_injection: '#eab308',
+  none_exploit: '#ff3366',
+  algorithm_downgrade: '#ff8800',
+  kid_injection: '#ffd000',
   key_confusion: '#a855f7',
-  replay_attack: '#3b82f6',
+  replay_attack: '#3b9eff',
   token_theft: '#ec4899',
-  malformed: '#6b7280',
-  invalid_signature: '#64748b',
+  malformed: '#64748b',
+  invalid_signature: '#6b7280',
   invalid_claims: '#94a3b8',
 };
 

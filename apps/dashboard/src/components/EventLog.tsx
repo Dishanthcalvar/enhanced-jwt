@@ -28,52 +28,84 @@ export function EventLog({ events }: { events: AttackEvent[] }) {
   }, [events, vector, ip]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      <div className="flex items-center gap-2">
+        <span className="text-lg">☰</span>
+        <h2 className="text-lg font-bold text-white">Event Log</h2>
+        <span className="ml-2 rounded-full px-2.5 py-0.5 text-[10px] font-semibold"
+          style={{ background: 'rgba(0, 240, 255, 0.08)', color: '#00f0ff', border: '1px solid rgba(0, 240, 255, 0.15)' }}>
+          {filtered.length} events
+        </span>
+      </div>
+
+      {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <select
           value={vector}
           onChange={(e) => setVector(e.target.value as (typeof VECTORS)[number])}
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
+          className="input-cyber text-sm"
+          style={{ fontFamily: 'Inter, sans-serif' }}
         >
           {VECTORS.map((v) => (
             <option key={v} value={v}>
-              {v}
+              {v === 'all' ? '🔍 All vectors' : v}
             </option>
           ))}
         </select>
         <input
           value={ip}
           onChange={(e) => setIp(e.target.value)}
-          placeholder="Filter IP"
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
+          placeholder="🔎 Filter by IP..."
+          className="input-cyber text-sm"
+          style={{ fontFamily: 'Inter, sans-serif', minWidth: 180 }}
         />
       </div>
-      <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/40">
+
+      {/* Table */}
+      <div className="glass-card overflow-hidden">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
-            <tr>
-              <th className="px-4 py-3">Time</th>
-              <th className="px-4 py-3">Vector</th>
-              <th className="px-4 py-3">IP</th>
-              <th className="px-4 py-3">Detail</th>
+          <thead>
+            <tr style={{ background: 'rgba(255, 255, 255, 0.02)' }}>
+              <th className="px-5 py-3.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500">Time</th>
+              <th className="px-5 py-3.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500">Attack Vector</th>
+              <th className="px-5 py-3.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500">Source IP</th>
+              <th className="px-5 py-3.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500">Detail</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800">
-            {filtered.map((e, i) => (
-              <tr key={`${e.timestamp}-${i}`}>
-                <td className="px-4 py-2 font-mono text-xs text-slate-400">{e.timestamp}</td>
-                <td className="px-4 py-2">
-                  <span
-                    className="inline-flex items-center gap-2 rounded bg-slate-800 px-2 py-0.5 text-xs"
-                    style={{ borderLeft: `3px solid ${attackColor(String(e.attack_vector))}` }}
-                  >
-                    {e.attack_vector}
-                  </span>
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-5 py-16 text-center">
+                  <div className="flex flex-col items-center text-slate-600">
+                    <span className="mb-2 text-3xl opacity-30">📭</span>
+                    <p className="text-xs">No events match filters</p>
+                  </div>
                 </td>
-                <td className="px-4 py-2 font-mono text-slate-300">{e.source_ip}</td>
-                <td className="px-4 py-2 text-slate-500">{e.detail ?? '—'}</td>
               </tr>
-            ))}
+            ) : (
+              filtered.map((e, i) => (
+                <tr key={`${e.timestamp}-${i}`} className="table-row-hover border-t border-white/[0.03]">
+                  <td className="px-5 py-3 font-mono text-[11px] text-slate-500">
+                    {new Date(e.timestamp).toLocaleTimeString('en-IN', { hour12: false })}
+                  </td>
+                  <td className="px-5 py-3">
+                    <span
+                      className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide"
+                      style={{
+                        backgroundColor: `${attackColor(String(e.attack_vector))}12`,
+                        color: attackColor(String(e.attack_vector)),
+                        border: `1px solid ${attackColor(String(e.attack_vector))}25`,
+                      }}
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: attackColor(String(e.attack_vector)) }} />
+                      {e.attack_vector}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3 font-mono text-xs font-medium text-slate-300">{e.source_ip}</td>
+                  <td className="px-5 py-3 text-xs text-slate-500">{e.detail ?? '—'}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

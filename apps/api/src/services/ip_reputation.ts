@@ -48,7 +48,10 @@ export class IpReputationService {
     let blocked = false;
     if (n >= env.IP_ATTACK_PERMANENT_THRESHOLD) {
       await this.redis.set(PREF_PERM + ip, vector);
+      // Also set the block key so it appears in the dashboard
+      await this.redis.set(PREF_BLOCK + ip, `attack:${vector}`);
       permanent = true;
+      blocked = true;
     }
     if (n >= env.IP_BLOCK_THRESHOLD) {
       await this.redis.setex(PREF_BLOCK + ip, env.IP_BLOCK_DURATION_SECONDS, `attack:${vector}`);
@@ -64,10 +67,15 @@ export class IpReputationService {
   async listBlocked(): Promise<
     { ip: string; reason: string; expiresAt: number | null; permanent: boolean }[]
   > {
-    const keys = await this.redis.keys(PREF_BLOCK + '*');
+    // Gather both block and permanent keys
+    const blockKeys = await this.redis.keys(PREF_BLOCK + '*');
+    const permKeys = await this.redis.keys(PREF_PERM + '*');
+    const seen = new Set<string>();
     const out: { ip: string; reason: string; expiresAt: number | null; permanent: boolean }[] = [];
-    for (const k of keys) {
+
+    for (const k of blockKeys) {
       const ip = k.slice(PREF_BLOCK.length);
+      seen.add(ip);
       const reason = (await this.redis.get(k)) ?? 'unknown';
       const ttl = await this.redis.ttl(k);
       const perm = await this.redis.get(PREF_PERM + ip);
@@ -78,6 +86,20 @@ export class IpReputationService {
         permanent: Boolean(perm),
       });
     }
+
+    // Include permanently blocked IPs not already in the block list
+    for (const k of permKeys) {
+      const ip = k.slice(PREF_PERM.length);
+      if (seen.has(ip)) continue;
+      const reason = (await this.redis.get(k)) ?? 'unknown';
+      out.push({
+        ip,
+        reason,
+        expiresAt: null,
+        permanent: true,
+      });
+    }
+
     return out;
   }
 }
