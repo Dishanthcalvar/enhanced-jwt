@@ -2,7 +2,8 @@ import type Redis from 'ioredis';
 import { env } from '../config/env';
 import { getTenantPrefix } from './tenant_prefix';
 
-const WINDOW_SEC = 60;
+const ATK_WINDOW_SEC = 3600;  // 1 hour — catches slow attackers
+const REJ_WINDOW_SEC = 300;   // 5 minutes — rejection flood window
 
 export interface IpCheckResult {
   allowed: boolean;
@@ -25,7 +26,8 @@ export class IpReputationService {
     const p = getTenantPrefix(tenantId);
     const key = `shield:${p}ip:rej:${ip}`;
     const n = await this.redis.incr(key);
-    if (n === 1) await this.redis.expire(key, WINDOW_SEC);
+    // Sliding window: reset the timer on every new rejection
+    await this.redis.expire(key, REJ_WINDOW_SEC);
 
     let blocked = false;
     let warn = false;
@@ -42,7 +44,8 @@ export class IpReputationService {
     const p = getTenantPrefix(tenantId);
     const key = `shield:${p}ip:atk:${ip}`;
     const n = await this.redis.incr(key);
-    if (n === 1) await this.redis.expire(key, WINDOW_SEC);
+    // Sliding window: reset the timer on every new attack so slow attackers still get caught
+    await this.redis.expire(key, ATK_WINDOW_SEC);
 
     let permanent = false;
     let blocked = false;

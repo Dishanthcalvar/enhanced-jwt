@@ -1,0 +1,174 @@
+═══════════════════════════════════════════════════════════════════════════════
+                    JWT SHIELD — ATTACK SIMULATION COMMANDS
+                    Replace URL with your ngrok URL before running
+═══════════════════════════════════════════════════════════════════════════════
+
+YOUR NGROK URL: https://celestial-glaucoma-sizzling.ngrok-free.dev
+
+IMPORTANT: Run these commands one at a time from your friend's terminal.
+Each attack should show up in the JWT Shield dashboard with their real IP.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+ATTACK 1: ALG:NONE EXPLOIT (5 attempts)
+────────────────────────────────────────────────────────────────────────────────
+Attempts to bypass signature verification by setting algorithm to "none"
+
+node -e "async function go(){const url='https://celestial-glaucoma-sizzling.ngrok-free.dev';for(let i=0;i<5;i++){const h=Buffer.from(JSON.stringify({alg:'none',typ:'JWT'})).toString('base64url');const p=Buffer.from(JSON.stringify({sub:'hacker',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url');const r=await fetch(url+'/api/movies',{method:'GET',headers:{Authorization:'Bearer '+h+'.'+p+'.'}});console.log('Attack #'+(i+1),r.status,await r.text())}}go()"
+
+Expected: 5x 403 Forbidden responses
+Dashboard: Shows "alg_none" attack vector
+
+═══════════════════════════════════════════════════════════════════════════════
+
+ATTACK 2: ALGORITHM DOWNGRADE (5 attempts)
+────────────────────────────────────────────────────────────────────────────────
+Attempts to use HS256 instead of RS256 (key confusion attack)
+
+node -e "async function go(){const url='https://celestial-glaucoma-sizzling.ngrok-free.dev';for(let i=0;i<5;i++){const h=Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url');const p=Buffer.from(JSON.stringify({sub:'attacker',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url');const sig=Buffer.from('fakesig'+i).toString('base64url');const r=await fetch(url+'/api/movies',{method:'GET',headers:{Authorization:'Bearer '+h+'.'+p+'.'+sig}});console.log('Attack #'+(i+1),r.status,await r.text())}}go()"
+
+Expected: 5x 403 Forbidden responses
+Dashboard: Shows "algorithm_confusion" attack vector
+
+═══════════════════════════════════════════════════════════════════════════════
+
+ATTACK 3: KID INJECTION (5 attempts)
+────────────────────────────────────────────────────────────────────────────────
+Attempts path traversal via kid header field
+
+node -e "async function go(){const url='https://celestial-glaucoma-sizzling.ngrok-free.dev';const kids=['../../etc/passwd','../key.pem',\"'; DROP TABLE keys; --\",'../../../../proc/self/environ','<script>alert(1)</script>'];for(let i=0;i<5;i++){const h=Buffer.from(JSON.stringify({alg:'RS256',typ:'JWT',kid:kids[i]})).toString('base64url');const p=Buffer.from(JSON.stringify({sub:'admin',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url');const sig=Buffer.from('inj'+i).toString('base64url');const r=await fetch(url+'/api/movies',{method:'GET',headers:{Authorization:'Bearer '+h+'.'+p+'.'+sig}});console.log('Attack #'+(i+1),'kid:',kids[i],r.status,await r.text())}}go()"
+
+Expected: 5x 403 Forbidden responses
+Dashboard: Shows "kid_injection" attack vector
+
+═══════════════════════════════════════════════════════════════════════════════
+
+ATTACK 4: HEADER INJECTION - JKU (5 attempts)
+────────────────────────────────────────────────────────────────────────────────
+Attempts to inject malicious JWK URL
+
+node -e "async function go(){const url='https://celestial-glaucoma-sizzling.ngrok-free.dev';for(let i=0;i<5;i++){const h=Buffer.from(JSON.stringify({alg:'RS256',typ:'JWT',jku:'https://evil.com/.well-known/jwks.json'})).toString('base64url');const p=Buffer.from(JSON.stringify({sub:'admin',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url');const sig=Buffer.from('jku'+i).toString('base64url');const r=await fetch(url+'/api/movies',{method:'GET',headers:{Authorization:'Bearer '+h+'.'+p+'.'+sig}});console.log('Attack #'+(i+1),r.status,await r.text())}}go()"
+
+Expected: 5x 403 Forbidden responses
+Dashboard: Shows "header_injection" attack vector
+
+═══════════════════════════════════════════════════════════════════════════════
+
+ATTACK 5: HEADER INJECTION - JWK (5 attempts)
+────────────────────────────────────────────────────────────────────────────────
+Attempts to embed malicious public key in header
+
+node -e "async function go(){const url='https://celestial-glaucoma-sizzling.ngrok-free.dev';for(let i=0;i<5;i++){const h=Buffer.from(JSON.stringify({alg:'RS256',typ:'JWT',jwk:{kty:'RSA',n:'fake',e:'AQAB'}})).toString('base64url');const p=Buffer.from(JSON.stringify({sub:'admin',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url');const sig=Buffer.from('jwk'+i).toString('base64url');const r=await fetch(url+'/api/movies',{method:'GET',headers:{Authorization:'Bearer '+h+'.'+p+'.'+sig}});console.log('Attack #'+(i+1),r.status,await r.text())}}go()"
+
+Expected: 5x 403 Forbidden responses
+Dashboard: Shows "header_injection" attack vector
+
+═══════════════════════════════════════════════════════════════════════════════
+
+ATTACK 6: MALFORMED TOKEN (5 attempts)
+────────────────────────────────────────────────────────────────────────────────
+Sends broken JWT structures
+
+node -e "async function go(){const url='https://celestial-glaucoma-sizzling.ngrok-free.dev';const tokens=['not.a.jwt.at.all','eyJhbGciOiJS','abc.def.','.....',Buffer.from('notjson').toString('base64url')+'.payload.sig'];for(let i=0;i<5;i++){const r=await fetch(url+'/api/movies',{method:'GET',headers:{Authorization:'Bearer '+tokens[i]}});console.log('Attack #'+(i+1),r.status,await r.text())}}go()"
+
+Expected: 5x 401 Unauthorized responses
+Dashboard: Shows "malformed_token" attack vector
+
+═══════════════════════════════════════════════════════════════════════════════
+
+ATTACK 7: INVALID SIGNATURE (5 attempts)
+────────────────────────────────────────────────────────────────────────────────
+Valid structure but wrong signature
+
+node -e "async function go(){const url='https://celestial-glaucoma-sizzling.ngrok-free.dev';for(let i=0;i<5;i++){const h=Buffer.from(JSON.stringify({alg:'RS256',typ:'JWT'})).toString('base64url');const p=Buffer.from(JSON.stringify({sub:'user',exp:Math.floor(Date.now()/1000)+3600,iss:'jwt-shield-demo',aud:'jwt-shield-api'})).toString('base64url');const sig=Buffer.from('wrongsig'+i).toString('base64url');const r=await fetch(url+'/api/movies',{method:'GET',headers:{Authorization:'Bearer '+h+'.'+p+'.'+sig}});console.log('Attack #'+(i+1),r.status,await r.text())}}go()"
+
+Expected: 5x 401 Unauthorized responses
+Dashboard: Shows "invalid_signature" attack vector
+
+═══════════════════════════════════════════════════════════════════════════════
+
+ATTACK 8: EXPIRED TOKEN (5 attempts)
+────────────────────────────────────────────────────────────────────────────────
+Token with expired timestamp
+
+node -e "async function go(){const url='https://celestial-glaucoma-sizzling.ngrok-free.dev';for(let i=0;i<5;i++){const h=Buffer.from(JSON.stringify({alg:'RS256',typ:'JWT'})).toString('base64url');const p=Buffer.from(JSON.stringify({sub:'user',iat:Math.floor(Date.now()/1000)-90000,exp:Math.floor(Date.now()/1000)-3600,iss:'jwt-shield-demo',aud:'jwt-shield-api'})).toString('base64url');const sig=Buffer.from('expired'+i).toString('base64url');const r=await fetch(url+'/api/movies',{method:'GET',headers:{Authorization:'Bearer '+h+'.'+p+'.'+sig}});console.log('Attack #'+(i+1),r.status,await r.text())}}go()"
+
+Expected: 5x 401 Unauthorized responses
+Dashboard: Shows "invalid_signature" or "invalid_claims" attack vector
+
+═══════════════════════════════════════════════════════════════════════════════
+
+ATTACK 9: LOGIN BRUTE FORCE (10 attempts)
+────────────────────────────────────────────────────────────────────────────────
+Attempts multiple wrong passwords
+
+node -e "async function go(){const url='https://celestial-glaucoma-sizzling.ngrok-free.dev';const passwords=['admin','password','123456','root','letmein','qwerty','admin123','password123','12345678','welcome'];for(let i=0;i<10;i++){const r=await fetch(url+'/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:passwords[i]})});console.log('Attempt #'+(i+1),'password:',passwords[i],r.status,await r.text())}}go()"
+
+Expected: 10x 401 Unauthorized responses
+Dashboard: Shows "bad_credentials" attack vector
+After 10 attempts: IP gets temporarily blocked
+
+═══════════════════════════════════════════════════════════════════════════════
+
+ATTACK 10: REQUEST FLOOD (burst of 15)
+────────────────────────────────────────────────────────────────────────────────
+Rapid-fire invalid requests to trigger IP block
+
+node -e "async function go(){const url='https://celestial-glaucoma-sizzling.ngrok-free.dev';const h=Buffer.from(JSON.stringify({alg:'none',typ:'JWT'})).toString('base64url');const p=Buffer.from(JSON.stringify({sub:'flood',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url');const promises=[];for(let i=0;i<15;i++){promises.push(fetch(url+'/api/movies',{method:'GET',headers:{Authorization:'Bearer '+h+'.'+p+'.'}}).then(r=>r.status))}const results=await Promise.all(promises);console.log('Flood results:',results);console.log('Expected: First 10 blocked (403), then IP blocked on subsequent requests')}go()"
+
+Expected: 15x 403 responses, IP blocked after 10th attempt
+Dashboard: Shows rapid succession of "alg_none" attacks, then IP appears in blocked list
+
+═══════════════════════════════════════════════════════════════════════════════
+
+COMBINED ATTACK SEQUENCE (runs all attacks in order)
+────────────────────────────────────────────────────────────────────────────────
+Runs 1 of each attack type to demonstrate variety
+
+node -e "async function go(){const url='https://celestial-glaucoma-sizzling.ngrok-free.dev';const attacks=[{name:'alg:none',h:Buffer.from(JSON.stringify({alg:'none',typ:'JWT'})).toString('base64url'),p:Buffer.from(JSON.stringify({sub:'h1'})).toString('base64url'),s:''},{name:'HS256',h:Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url'),p:Buffer.from(JSON.stringify({sub:'h2'})).toString('base64url'),s:'fake'},{name:'kid injection',h:Buffer.from(JSON.stringify({alg:'RS256',typ:'JWT',kid:'../../etc/passwd'})).toString('base64url'),p:Buffer.from(JSON.stringify({sub:'h3'})).toString('base64url'),s:'inj'},{name:'jku injection',h:Buffer.from(JSON.stringify({alg:'RS256',typ:'JWT',jku:'https://evil.com/jwks.json'})).toString('base64url'),p:Buffer.from(JSON.stringify({sub:'h4'})).toString('base64url'),s:'jku'},{name:'malformed',h:'broken',p:'token',s:'here'}];for(let i=0;i<attacks.length;i++){const a=attacks[i];const token=a.h+'.'+a.p+'.'+a.s;const r=await fetch(url+'/api/movies',{method:'GET',headers:{Authorization:'Bearer '+token}});console.log((i+1)+'.',a.name,'→',r.status,await r.text());await new Promise(r=>setTimeout(r,500))}}go()"
+
+Expected: 5 different attack vectors logged in dashboard
+Dashboard: Shows variety of attack types from same IP
+
+═══════════════════════════════════════════════════════════════════════════════
+
+TESTING CHECKLIST
+────────────────────────────────────────────────────────────────────────────────
+
+□ Run Attack 1-8 individually (5 attempts each = 40 total attacks)
+□ Run Attack 9 (10 login attempts)
+□ Run Attack 10 (15 flood requests) — should trigger IP block
+□ Check dashboard shows all attacks with correct attack vectors
+□ Verify attacker's real IP appears in blocked IP list
+□ Test unblock functionality from dashboard
+□ Run combined sequence to show attack variety
+
+EXPECTED DASHBOARD BEHAVIOR:
+────────────────────────────────────────────────────────────────────────────────
+
+After running all attacks:
+├─ Total Requests: ~65+
+├─ Total Blocked: ~65+
+├─ Block Rate: ~100%
+├─ Blocked IPs: 1 (your friend's IP)
+├─ Attack Breakdown:
+│  ├─ alg_none: ~20
+│  ├─ algorithm_confusion: 5
+│  ├─ kid_injection: 5
+│  ├─ header_injection: 10
+│  ├─ malformed_token: 5
+│  ├─ invalid_signature: 10
+│  └─ bad_credentials: 10
+└─ Event Log: Shows all attacks with timestamps and IPs
+
+IP BLOCKING TIMELINE:
+────────────────────────────────────────────────────────────────────────────────
+
+Attacks 1-9:   IP tracked, warnings issued
+Attack 10:     IP temporarily blocked (1 hour)
+After unblock: Can attack again
+After 3 different attack vectors: Permanent ban (requires manual unblock)
+
+═══════════════════════════════════════════════════════════════════════════════
+                              END OF ATTACK GUIDE
+═══════════════════════════════════════════════════════════════════════════════
